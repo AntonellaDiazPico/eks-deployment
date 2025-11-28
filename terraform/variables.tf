@@ -6,3 +6,4 @@ variable "default_tags" {
     "environment" = "test"
   }
 }
+
