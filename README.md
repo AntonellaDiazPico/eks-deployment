@@ -1,85 +1,93 @@
 # EKS Deployment Project
 
-## 🏗️ Overview
+## 🚀 Overview
 
-This project demonstrates a complete microservices architecture deployed on AWS EKS with automated CI/CD pipelines. It showcases infrastructure as code, Kubernetes orchestration, application load balancing, and monitoring capabilities.
+Simple AWS EKS deployment with automated CI/CD pipeline and CloudWatch monitoring.
 
-**Live Application:** [http://k8s-default-nginxing-8ca6de4cfc-808164679.us-east-1.elb.amazonaws.com](http://k8s-default-nginxing-8ca6de4cfc-808164679.us-east-1.elb.amazonaws.com)
-
-## 🎯 Architecture
-
-### Infrastructure Components
-
-```
-Internet
-    ↓
-Application Load Balancer (Public Subnets)
-    ↓
-Kubernetes Service (ClusterIP)
-    ↓
-Nginx Pods (Private Subnets)
-```
-
-### AWS Resources Deployed
-
-- **VPC**: Custom VPC with 2 public and 2 private subnets across 2 AZs
-- **EKS Cluster**: Kubernetes cluster with 2 worker nodes
-- **ECR Repository**: Container registry for custom application images
-- **Application Load Balancer**: Internet-facing load balancer for external access
-- **IAM Roles**: IRSA configuration for service accounts
-
-## 🚀 Key Features
-
-### ✅ Infrastructure as Code (Terraform)
-- Complete AWS infrastructure provisioned via Terraform
-- VPC with proper subnet architecture
-- EKS cluster with worker node groups
-- IAM roles and policies for secure access
-
-### ✅ Kubernetes Orchestration
-- **Deployment**: Nginx application with 2 replicas in private subnets
-- **Service**: ClusterIP service for internal communication
-- **Ingress**: ALB ingress controller for external access
-- **DaemonSet**: CloudWatch agent on each worker node
-- **Service Accounts**: IRSA configuration for AWS permissions
-
-### ✅ CI/CD Pipeline (GitHub Actions)
-- Automated detection of "Hello World" phrase in source code
-- Manual approval gate before deployment
-- Docker image build and push to ECR
-- Automatic Kubernetes deployment updates
-- Rolling updates with zero downtime
-
-### ✅ Security Best Practices
-- Pods deployed in private subnets only
-- Public ALB routes traffic to private pods
-- IRSA for secure AWS API access
-- Least privilege IAM policies
+**Live Application:** http://k8s-default-nginxing-8ca6de4cfc-808164679.us-east-1.elb.amazonaws.com
 
 ## 📁 Project Structure
 
 ```
 ├── terraform/           # Infrastructure as Code
-│   ├── main.tf         # VPC, subnets, gateways
-│   ├── eks.tf          # EKS cluster configuration
-│   ├── iam.tf          # IAM roles and policies
-│   └── ecr.tf          # Container registry
 ├── k8s/                # Kubernetes manifests
-│   ├── deployments/    # Application deployments
-│   ├── services/       # Kubernetes services
-│   ├── ingress/        # Load balancer configuration
-│   ├── daemonsets/     # CloudWatch monitoring
-│   └── serviceaccount/ # IRSA configuration
-├── .github/workflows/  # CI/CD pipeline
 ├── docker/             # Container configuration
-└── src/                # Application source code
+├── src/                # Application source code
+└── .github/workflows/  # CI/CD pipeline
 ```
 
-## 🛠️ Technologies Used
+## 🏗️ Architecture
 
-- **Infrastructure**: AWS (VPC, EKS, ECR, ALB, CloudWatch)
-- **Orchestration**: Kubernetes, Helm
-- **CI/CD**: GitHub Actions
-- **Infrastructure as Code**: Terraform
-- **Containerization**: Docker
-- **Monitoring**: CloudWatch, DaemonSets
+```
+Internet → ALB (Public Subnets) → Kubernetes Service → Nginx Pods (Private Subnets)
+```
+
+**Infrastructure:**
+- VPC with 2 public + 2 private subnets (multi-AZ)
+- EKS cluster with 2 worker nodes
+- Application Load Balancer for external access
+- ECR for container registry
+
+## ✅ What's Deployed
+
+### Application
+- **2 nginx pods** running in private subnets
+- **ClusterIP service** for internal communication
+- **ALB ingress** routing external traffic
+
+### Monitoring
+- **CloudWatch Observability Add-on** (official AWS EKS add-on)
+- **Container Insights** for metrics and logs
+- **IRSA** for secure AWS permissions
+
+### CI/CD
+- **GitHub Actions** pipeline
+- **Automated "Hello World" detection**
+- **Manual approval** for production deployments
+- **ECR integration** for container builds
+
+## 🚀 Quick Start
+
+### Deploy Infrastructure
+```bash
+cd terraform
+terraform init
+terraform apply
+```
+
+### Configure kubectl
+```bash
+aws eks update-kubeconfig --region us-east-1 --name my-cluster
+```
+
+### Deploy Application
+```bash
+kubectl apply -f k8s/  # /deamonset is deprecated and replaced with add-on
+```
+
+## 🔧 Technologies
+
+- **Cloud:** AWS (VPC, EKS, ECR, ALB, CloudWatch)
+- **Container:** Docker, Kubernetes
+- **Infrastructure:** Terraform
+- **CI/CD:** GitHub Actions
+- **Monitoring:** CloudWatch Observability Add-on
+
+## 📊 Monitoring
+
+CloudWatch monitoring is handled by the official AWS EKS add-on which provides:
+- Container metrics and logs
+- Application insights
+- Node and cluster metrics
+- Automated log aggregation
+
+## 🔒 Security
+
+- Pods deployed in private subnets only
+- IRSA for AWS service authentication
+- Network isolation between tiers
+- Container security best practices
+
+---
+
+**Contact:** Antonella Diaz Pico
