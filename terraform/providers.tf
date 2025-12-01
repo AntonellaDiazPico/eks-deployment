@@ -9,6 +9,11 @@ terraform {
       version = "~> 4.0"
     }
   }
+  backend "s3" {
+    bucket = "antonella-eks-test-terraform-state"
+    key    = "global/eks/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 provider "aws" {
