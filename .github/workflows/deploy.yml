@@ -1,0 +1,91 @@
+name: Antos EKS Pipeline Test
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: nginx-app
+  EKS_CLUSTER_NAME: my-cluster
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      hello-world-found: ${{ steps.check-hello.outputs.found }}
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Check for Hello World
+      id: check-hello
+      run: |
+        if grep -q "Hello World" src/index.html; then
+          echo "✅ Found Hello World phrase"
+          echo "found=true" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Hello World phrase missing"
+          echo "found=false" >> $GITHUB_OUTPUT
+        fi
+
+  manual-approval:
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.hello-world-found == 'true'
+    environment: test
+    
+    steps:
+    - name: Await Manual Approval
+      run: |
+        echo "🛑 Manual approval required before deployment"
+        echo "✅ Hello World phrase found - proceeding with deployment workflow"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [check, manual-approval]
+    if: needs.check.outputs.hello-world-found == 'true'
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+          registries: ${{ secrets.ECR_ACCOUNT_ID }}
+
+    - name: Build and Push Docker Image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: docker/Dockerfile
+        push: true
+        tags: |
+          ${{ vars.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          ${{ vars.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Update EKS deployment
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+        kubectl set image deployment/nginx-deployment nginx=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        kubectl rollout status deployment/nginx-deployment --timeout=300s
