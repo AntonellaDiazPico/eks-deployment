@@ -33,3 +33,20 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.node_group_AmazonEC2ContainerRegistryReadOnly,
   ]
 }
+
+# CloudWatch Observability Add-on (replaces initial DaemonSet)
+resource "aws_eks_addon" "cloudwatch_observability" {
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "amazon-cloudwatch-observability"
+  addon_version               = "v4.7.0-eksbuild.1"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [
+    aws_eks_node_group.main
+  ]
+
+  tags = merge(var.default_tags, {
+    Name = "cloudwatch-observability-addon"
+  })
+}
