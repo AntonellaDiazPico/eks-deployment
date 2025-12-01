@@ -12,9 +12,39 @@ spec:
       labels:
         app: cloudwatch-agent
     spec:
+      serviceAccountName: cloudwatch-agent
+      volumes:
+        - name: cwagentconfig
+          configMap:
+            name: cwagentconfig
+        - name: cwagent-var
+          emptyDir: {}
+        - name: cwagent-etc
+          emptyDir: {}
       containers:
-      - name: cloudwatch-agent
-        image: amazon/cloudwatch-agent:latest
-        env:
-        - name: AWS_REGION
-          value: "us-east-1"
+        - name: cloudwatch-agent
+          image: amazon/cloudwatch-agent:latest
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          env:
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_ROLE_ARN
+              value: "arn:aws:iam::676206912141:role/CloudWatchAgentRole"
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+            - name: CW_CONFIG_CONTENT
+              valueFrom:
+                configMapKeyRef:
+                  name: cwagentconfig
+                  key: cwagentconfig.json
+          volumeMounts:
+            - name: cwagentconfig
+              mountPath: /etc/cwagentconfig
+              readOnly: true
+            - name: cwagent-var
+              mountPath: /opt/aws/amazon-cloudwatch-agent/var
+            - name: cwagent-etc
+              mountPath: /opt/aws/amazon-cloudwatch-agent/etc
